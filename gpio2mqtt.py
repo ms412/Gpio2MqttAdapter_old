@@ -84,9 +84,9 @@ class Manager(daemon):
         topic = mqttMsg.topic
         cmd = mqttMsg.payload 
         list_topic = topic.split("/")
-        resultDict.update({'DeviceChannel':list_topic[-2]})
-        resultDict.update({'PortName':list_topic[-1]})
-        resultDict.update({'PortState':cmd})
+        resultDict.update({'DEVICE_NAME':list_topic[-2]})
+        resultDict.update({'PORT_NAME':list_topic[-1]})
+        resultDict.update({'PORT_STATE':cmd})
         #self.log.debug('FilterOutput: %s', resultDict)
         return resultDict
         
@@ -95,30 +95,29 @@ class Manager(daemon):
         Filter transforms informations from VHM to MQTT
         """
         self._loghandle.debug('Manager::FilterVHM2MQTT Message %s', vhmDict)
-        DeviceChannel = vhmDict.get('DeviceChannel','None')
-        name = vhmDict.get('PortName','None')
-        state = vhmDict.get('PortState','None')
+        device_name = vhmDict.get('DEVICE_NAME','None')
+        port_name = vhmDict.get('PORT_NAME','None')
+        port_state = str(vhmDict.get('PORT_STATE','None'))
         
-        channel = DeviceChannel + '/' + name
-        state = str(state)
+        mqtt_sub_ch = device_name + '/' + port_name
         
-        return {'msg':state, 'channel':channel}
+        return {'mqtt_msg':port_state, 'mqtt_sub_ch':mqtt_sub_ch}
     
     def pollIOUpdate(self):
         
-        data = self._vhm.Update()
+        vhmList = self._vhm.Update()
   #      print "VHMDict Leng:", len(data)
-        if 0 != len(data):
+        if 0 != len(vhmList):
             #for vhmDict in self._vhm.Update():
-            for vhmDict in data:
-          #      print 'VHMDict: ',vhmDict
+            for vhmDict in vhmList:
+                print 'VHMDict: ',vhmDict
                 resultDict = self.FilterVHM2MQTT(vhmDict)
-                channel = resultDict.get('channel')
-                msg = resultDict.get('msg')
-                self._loghandle.debug('Manager::putMsg GPIO Updates and Publish to Mqtt; Channel: %s, message: %s',channel, msg)
+                mqtt_sub_ch = resultDict.get('mqtt_sub_ch')
+                mqtt_msg = resultDict.get('mqtt_msg')
+                self._loghandle.info('Manager::pollIOUpdate GPIO Updates and Publish to Mqtt; Channel: %s, message: %s',mqtt_sub_ch, mqtt_msg)
                 self._mqttThread.mqtt_send(resultDict)
-            else:
-                self._loghandle.error('Manager::sendUpdateMsg no Data available')
+        #else:
+         #   self._loghandle.error('Manager::sendUpdateMsg no Data available')
                 
     def pollMqttUpdate(self):
   #      self.log.debug('Getmessage')
@@ -127,12 +126,12 @@ class Manager(daemon):
         while self._mqttQueue.qsize():
             mqttMsg = self._mqttQueue.get(True, 5)
             vhmDict = self.FilterMqtt2VHM(mqttMsg)
-            channel = vhmDict.get('DeviceChannel','None')
-            name = vhmDict.get('PortName','None')
-            state = vhmDict.get('PortState','None')
-            self._loghandle.info('Manager::getMsg Received message from Mqtt Channel: %s Name: %s State: %s',channel,name,state)
+            device_name = vhmDict.get('DEVICE_NAME','None')
+            port_name = vhmDict.get('PORT_NAME','None')
+            port_state = vhmDict.get('PORT_STATE','None')
+            self._loghandle.info('Manager::pollMqttUpdate Received message from Mqtt Channel: %s Name: %s State: %s',device_name,port_name,port_state)
 #            print " write to VHM", channel, name, state
-            self._vhm.Write(channel,name,state)
+            self._vhm.Write(device_name,port_name,port_state)
             
         return
     

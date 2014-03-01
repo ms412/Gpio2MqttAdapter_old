@@ -27,10 +27,12 @@ class mqttclient(threading.Thread):
 
         self._host = str(self._config.get(0,'MQTT_HOST','localhost'))
         self._port = int(self._config.get(0,'MQTT_PORT',1883))
-        tempChannel = self._config.get(0,'MQTT_CHANNEL','/OPENHAB') +'/'+'#'
-        self._channel = str(tempChannel)
+#        tempChannel = self._config.get(0,'MQTT_CHANNEL','/OPENHAB') +'/'+'#'
+        self._mqtt_sub_ch = str(self._config.get(0,'MQTT_SUB_CH','/RASPBERRY02') +'/'+'#')
+        self._mqtt_pub_ch = str(self._config.get(0,'MQTT_PUB_CH','/OPENHAB02') +'/')
+ #       self._channel = str(tempChannel)
         
-        self._loghandle.info('MqttWrapper::Init Start Mqtt Client Thread at host: %s Port: %s Channel: %s',self._host, self._port, self._channel )
+        self._loghandle.info('MqttWrapper::Init Start Mqtt Client Thread at host: %s; Port: %s; Subscribe Ch.: %s; Publish Ch.: %s;',self._host, self._port, self._mqtt_sub_ch, self._mqtt_pub_ch  )
         
         self._mqttc = mqtt.Client(str(os.getpid()))
         self._mqttc.on_message = self.mqtt_on_message
@@ -80,8 +82,10 @@ class mqttclient(threading.Thread):
     def mqtt_publish(self,msg,channel=None):
         
         if channel is None:
-            channel = self._channel
+            channel = self._mqtt_pub_ch
             
+        channel = str(self._mqtt_pub_ch +'/' + channel)
+        
         self._loghandle.info('MqttWrapper::Publish to Channel: %s Message: %s',channel, msg)
         self._mqttc.publish(channel, msg)
 
@@ -90,7 +94,7 @@ class mqttclient(threading.Thread):
     def run(self):
         self._mqttc.connect(self._host, self._port, 60)
 
-        self._mqttc.subscribe(self._channel, 0)
+        self._mqttc.subscribe(self._mqtt_sub_ch, 0)
 
         rc = 0
         while rc == 0:
@@ -100,7 +104,7 @@ class mqttclient(threading.Thread):
             while self._sendQueue.qsize():
                 self._loghandle.debug('MqttWrapper::Run Messages to be send available %s:',self._sendQueue.qsize())
                 (msgDict)=self._sendQueue.get()
-                self.mqtt_publish(msgDict.get('msg'), msgDict.get('channel',None))
+                self.mqtt_publish(msgDict.get('mqtt_msg'), msgDict.get('mqtt_sub_ch',None))
 
         self._loghandle.critical('MqttWrapper::Run Mqtt Thread malfunction',rc)
         return rc

@@ -55,6 +55,7 @@ class hwIF_23017(object):
         """
         self._loghandle.debug('mcp23017Driver::Reset, prepare initial setup of device')
  
+        print "reset"
         self._i2c.Write(self._i2cAdd,self._IODIRA,0xFF)
         self._i2c.Write(self._i2cAdd,self._IOPOLA,0x00)
         self._i2c.Write(self._i2cAdd,self._GPINTENA,0x00)

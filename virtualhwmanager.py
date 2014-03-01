@@ -22,7 +22,7 @@ class vhm(object):
         self.threadQueue = Queue.Queue()
         
  #       self._loghandle.info('VHM::init  Version %s , Data %s',__VERSION__,__DATE__)
-        self._loghandle.info('VHM::init Create Object with configuration %s',configuration)
+    #    self._loghandle.info('VHM::init Create Object with configuration %s',configuration)
         
         self.start()
     
@@ -77,7 +77,7 @@ class vhm(object):
         if result == True:
             self._loghandle.info('VHM::Write Device Found: %s', channel)
     #        print "Write to Device", channel
-            threadID.Set(port,value)
+            threadID.Write(port,value)
         else:
             self._loghandle.error('VHM::Write Device %s not Found', channel)
             result = False
@@ -89,7 +89,7 @@ class vhm(object):
         
         if result == True:
             self._loghandle.debug('VHM::Read Device Found: %s', channel) 
-            result, value = threadID.Get(port)
+            result, value = threadID.Read(port)
             if result == True:
                 self._loghandle.debug('VHM::Read Channel: %s, Port: %s, Status: %s', channel, port, value)
             else:

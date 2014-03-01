@@ -4,12 +4,10 @@ import Queue
 import time
 
 
-from virtualportmanager import BinaryOut
-from virtualportmanager import BinaryIn
-from virtualportmanager import TimerOut
+from virtualportmanager import vpm
 from hwIF_23017 import hwIF_23017
+from hwIF_stub import hwIF_stub
 from hwIF_raspberry import hwIF_raspberry
-
 from config import config
 from wrapper_log import loghandle
 
@@ -20,7 +18,7 @@ class vdm(threading.Thread):
     classdocs
     '''
 
-    def __init__(self, configuration, fromPortQueue):
+    def __init__(self, configuration, threadQueue):
         '''
         Constructor
         '''
@@ -32,166 +30,122 @@ class vdm(threading.Thread):
         
         self._help = configuration
         
-        self._DEVICE_TYPE = configuration.get('TYPE')
-        self._DEVICE_NAME = configuration.get('NAME')
+        self._DEVICE = configuration.get('DEVICE')
         self._MQTT_CHANNEL = configuration.get('MQTT_CHANNEL')
-#        self._RASPBERRY_REV = int(configuself._toPortQu = Queue.Queue()ration.get('RASPBERRY_REV'))
+#        self._RASPBERRY_REV = int(configuration.get('RASPBERRY_REV'))
  #       self._I2C_ADDRESS = int(configuration.get('I2C_ADDRESS'),16)
         
-        self._fromPortQueue = fromPortQueue
+        self._threadQueue = threadQueue
+        self._setQueue = Queue.Queue()
         
         self._portInstanceList = []
 #        self._loghandle.info('VirtualDeviceDrv23017::init  Version %s , Date %s',__VERSION__,__DATE__)
-        self._loghandle.info('VDM::init Create Object Device %s Mqtt %s',self._DEVICE_TYPE, self._DEVICE_NAME)
-        self._loghandle.debug('VDM::init Create Object with configuration %s',configuration)
+        self._loghandle.info('VirtualDeviceDrv23017::init Create Object Device %s Mqtt %s',self._DEVICE,self._MQTT_CHANNEL)
+        self._loghandle.debug('VirtualDeviceDrv23017::init Create Object with configuration %s',configuration)
         
     def __del__(self):
         '''
         delets the mqtt wrapper object
         '''
-        self._loghandle.debug('VDM::del Delete Object')
+        self._loghandle.debug('VirtualDeviceDrv23017::del Delete Object')
         
     def run(self):
-        self._loghandle.info('VDM::run Startup Thread')
+        self._loghandle.info('VirtualDeviceDrv23017::run Startup Thread')
         
         self.Setup()
    #     self.SetupPort()
         
         #read the port status of all boards 
-        data = self.Read()
-        self._fromPortQueue.put(data)
+        data = self.UpdateGPIO('ALL')
+        self._threadQueue.put(data)
         
         rc = 0
         while rc == 0:
   #          print "Simulator Loop"
             '''Read Updaet from GPIO Ports'''
-            data = self.Update()
-            self._fromPortQueue.put(data)
+            data = self.UpdateGPIO('UPDATE')
+            self._threadQueue.put(data)
             ''' make update from Flash Ports'''
-   #         self.UpdateFlash()
-   #         self.UpdatePushButton()
-    #        data = self.UpdateDebounce()
-     #       self._threadQueue.put(data)
+            self.UpdateFlash()
+            self.UpdatePushButton()
+            data = self.UpdateDebounce()
+            self._threadQueue.put(data)
             time.sleep(1)
-            
-        #    while self._toPortQu.qsize:
-                
-                 #   def SetupPort(self):
-
-  #      for configItem in self._config.getSectionByRegex('Port[0-9]'): 
-   #         self._loghandle.debug('VirtualDeviceDrv23017::SetupPort Port %s', configItem) 
-   #         self._portInstanceList.append(virtualPort(self._hwDevice, configItem))e():
+            while self._setQueue.qsize():
             #    print self._setQueue.qsize()
-           #     print self._setQueue.get()
+                print self._setQueue.get()
             #    time.sleep(1)
 
-        self._loghandle.critical('VDM::run Thread Crashed')
+        self._loghandle.critical('VirtualDeviceDrv23017::run Thread Crashed')
         return rc
         
     def Setup(self):
-        if 'MCP23017' in self._DEVICE_TYPE:
+        if 'MCP23017' in self._DEVICE:
             self._RASPBERRY_REV = int(self._help.get('RASPBERRY_REV'))
             self._I2C_ADDRESS = int(self._help.get('I2C_ADDRESS'),16)
             self._loghandle.info('Start MCP23017 Hardware Interface with i2c address: %s',self._I2C_ADDRESS)
             self._hwHandle = hwIF_23017(self._RASPBERRY_REV,self._I2C_ADDRESS)
            
             for configItem in self._config.getSectionByRegex('Port[0-9]'): 
-                self._loghandle.debug('VirtualPortManager:Setup Port Number %s for Device %s with Configuration',len(self._portInstanceList), self._DEVICE_TYPE, configItem) 
-                if 'BINARY-OUT' in configItem.get('MODE'):
-                    self._portInstanceList.append(BinaryOut(self._hwHandle, self._DEVICE_TYPE, configItem))
-                elif 'BINARY-IN' in configItem.get('MODE'):
-                    self._portInstanceList.append(BinaryIn(self._hwHandle, self._DEVICE_TYPE, configItem))
-                elif 'TIMER-OUT' in configItem.get('MODE'):
-                    self._portInstanceList.append(TimerOut(self._hwHandle, self._DEVICE_TYPE, configItem))
-                else:
-                    self._loghandle.critical('VirtualPortManager:Setup Port Number %s for Device %s Mode %s not supported',configItem.get('NAME'), self._DEVICE_TYPE, configItem.get('MODE')) 
+                self._loghandle.debug('VirtualPortManager:Setup Port Number %s for Device %s with Configuration',len(self._portInstanceList), self._DEVICE, configItem) 
+                self._portInstanceList.append(vpm(self._hwHandle, self._DEVICE, configItem))
                 
-        elif 'RASPBERRY' in self._DEVICE_TYPE:
+        elif 'RASPBERRY' in self._DEVICE:
             self._loghandle.info('Start Raspberry GPIO interface')
             self._hwHandle = hwIF_raspberry()
             
             for configItem in self._config.getSectionByRegex('Port[0-9]'): 
-                self._loghandle.debug('VirtualPortManager:Setup Port Number %s for Device    OFF_VALUE: OFF %s with Configuration',len(self._portInstanceList), self._DEVICE_TYPE, configItem) 
-                self._portInstanceList.append(vpm(self._hwHandle, self._DEVICE_TYPE, configItem))
-                
+                self._loghandle.debug('VirtualPortManager:Setup Port Number %s for Device %s with Configuration',len(self._portInstanceList), self._DEVICE, configItem) 
+                self._portInstanceList.append(vpm(self._hwHandle, self._DEVICE, configItem))
+            
+        elif 'SIMULATOR' in self._DEVICE:
+            self._I2C_ADDRESS = 0
+            self._loghandle.info('Start Simulator Hardware Interface with virtual i2c address: %s',self._I2C_ADDRESS)
+            self._hwHandle = hwIF_stub(self._I2C_ADDRESS)
+           
+            for configItem in self._config.getSectionByRegex('Port[0-9]'): 
+                self._loghandle.debug('VirtualPortManager:Setup Port Number %s for Device %s with Configuration',len(self._portInstanceList), self._DEVICE, configItem) 
+                self._portInstanceList.append(vpm(self._hwHandle, self._DEVICE, configItem))
+            
         else:
             self._loghandle.crittical('VDM::Setup: Device not Supported')
-            
         
+ #   def SetupPort(self):
+
+  #      for configItem in self._config.getSectionByRegex('Port[0-9]'): 
+   #         self._loghandle.debug('VirtualDeviceDrv23017::SetupPort Port %s', configItem) 
+   #         self._portInstanceList.append(virtualPort(self._hwDevice, configItem))
+        
+    def SetPort(self,msg):
+        self._setQueue.put(msg)
         return True
                        
-    def Write(self, portName, value):  
-     
-        resultDict = self.GetPortInstance(portName)             
-        result = resultDict.get('Result')
-        instance = resultDict.get('Instance')
-        
-        if result == True:
+    def Set(self, portName, value):
+  #      self._loghandle.error('VirtualDeviceDrv23017::Set Debug Port %s %s', portName, value)
+        print "PORTNAME", portName, value
+        result, portInstance = self.GetPortInstance(portName)
             
-            if 'OUT' in instance.GetDirection(): 
-                self._loghandle.debug('VDM::Write Port %s found in Portlist', portName)
-                instance.Set(value)
-                
+        if result == True:
+            if 'OUT' in portInstance.GetDirection(): 
+                self._loghandle.info('VirtualDeviceDrv23017new::Set Port %s found in Portlist', portName)
+                portInstance.Set(value)
             else:
-                self._loghandle.debug('VDM::Write Port %s is not OUTPUT Port', portName)
+                self._loghandle.error('VirtualDeviceDrv23017new::Set Port %s is not OUTPUT Port', portName)
                 result = False
         else:
-            self._loghandle.error('VDM::Write Port %s NOT found in Portlist', portName)
+            self._loghandle.error('VirtualDeviceDrv23017nes::Set Port %s NOT found in Portlist', portName)
             result = False
-            irtualDeviceDrv23017
+            
         return result
     
-    def Read(self, name = None):
+    def Get(self, portName):
         
-        resultList =[]
-        
-        if name != None:
-            resultDict = self.GetPortInstance(portName)             
-            result = resultDict.get('Result')
-            instance = resultDict.get('Instance')
-            if result == True:
-                value = instance.Get()
-                resultList.append(self.EnrichResult(value, instance))
-                
-        else:
-            for instance in self._portInstanceList:
-                if 'TIMER-OUT' in instance.GetMode():
-                    break
-                    
-                else:
-                    value = instance.Get()
-                    resultList.append(self.EnrichResult(value, instance))
-                
-    #    print 'GET',resultList
-        return resultList
+        result, portInstance = self.GetPortInstance(portName)
 
-    def Update(self, mode = 'UPDATE'):
-        
-        resultList =[]
-        
-        for instance in self._portInstanceList:
-            if 'BINARY-IN' in instance.GetMode():
-#            if 'IN' in instance.GetDirection():
-                value = instance.Update()
-                if value.get('Update') == True:
-                    resultList.append(self.EnrichResult(value.get('State'), instance))
-                    
-            elif 'TIMER-OUT' in instance.GetMode():
-                instance.Update()
-                
-     #   print 'UPDATE',resultList    
-        return resultList
-    
-        
-    def EnrichResult(self, value, instance):
-        
-        resultDict = {}
-        
-        resultDict.update({'DEVICE_NAME':self._DEVICE_NAME})
-        resultDict.update({'PORT_NAME':instance.GetName()})
-        resultDict.update({'PORT_STATE':value})
-        
-        return resultDict
+        if result == True:
+            resultDict = portInstance.Get()
+
+        return (resultDict) 
     
     def UpdateGPIO(self, mode):
         resultList = []
@@ -264,21 +218,20 @@ class vdm(threading.Thread):
         portName = portName.strip()
         
         for instance in self._portInstanceList:
-  #          print "Search instance Search: ", portName," instance name", instance.GetName()
+            print "Search instance Search: ", portName," instance name", instance.GetName()
             if portName == instance.GetName():
     #            self._loghandle.info('DRIVER_Simulator::TEst Portname %s, GetName() %2', portName, instance.GetName())
                 portInstance = instance
                 result = True
-   #             print "Port FOUND"
+                print "Port FOUND"
                 break
                 
         self._loghandle.debug('VirtualDeviceDrv23017::GetPortInstance Result: %s Port Instance %s', result, portInstance)       
-      #  return (result, portInstance)    
-        return {'Result':result,'Instance':portInstance}
+        return (result, portInstance)    
 
     
     def GetChannelName(self):
-        return self._DEVICE_NAME
+        return self._MQTT_CHANNEL
         
 
     
