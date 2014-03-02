@@ -97,7 +97,7 @@ class Manager(daemon):
         self._loghandle.debug('Manager::FilterVHM2MQTT Message %s', vhmDict)
         device_name = vhmDict.get('DEVICE_NAME','None')
         port_name = vhmDict.get('PORT_NAME','None')
-        port_state = str(vhmDict.get('PORT_STATE','None'))
+        port_state = str(vhmDict.get('PORT_VALUE','None'))
         
         mqtt_sub_ch = device_name + '/' + port_name
         
@@ -129,9 +129,14 @@ class Manager(daemon):
             device_name = vhmDict.get('DEVICE_NAME','None')
             port_name = vhmDict.get('PORT_NAME','None')
             port_state = vhmDict.get('PORT_STATE','None')
-            self._loghandle.info('Manager::pollMqttUpdate Received message from Mqtt Channel: %s Name: %s State: %s',device_name,port_name,port_state)
+            
 #            print " write to VHM", channel, name, state
-            self._vhm.Write(device_name,port_name,port_state)
+            if 'ADMINISTRATION' in port_name and 'SYNC' in port_state: 
+                self._loghandle.info('Manager::pollMqttUpdate Administrative Message Received: %s Request: %s',port_name,port_state)
+                self._vhm.RequestSync()          
+            else:
+                self._loghandle.info('Manager::pollMqttUpdate Received message from Mqtt Channel: %s Name: %s State: %s',device_name,port_name,port_state)
+                self._vhm.Write(device_name,port_name,port_state)
             
         return
     

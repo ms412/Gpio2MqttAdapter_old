@@ -21,8 +21,6 @@ Config:
    TYPE: MCP23017
    NAME: DEVICE01
 
-  
-  
    Port0:
     NAME: GPIO100
     HWID: 0
@@ -36,6 +34,13 @@ Config:
     ON_VALUE: ON
     OFF_VALUE: OFF
     MODE: BINARY-IN
+    
+   Port2:
+    NAME: GPIO102
+    HWID: 2
+    ON_VALUE: ON
+    OFF_VALUE: OFF
+    MODE: TIMER-IN
     
    Port8:
     NAME: GPIO108
@@ -51,17 +56,11 @@ Config:
     ON_VALUE: ON
     OFF_VALUE: OFF
     MODE: BINARY-OUT
-    
+  
    Port10:
-    NAME: BUTTON110
+    NAME: GPIO110
     HWID: 10
     ON_VALUE: ON
+    OFF_VALUE: OFF
     MODE: TIMER-OUT
-
-   Port11:
-    NAME: BUTTON111
-    HWID: 11
-    ON_VALUE: ON
-    MODE: TIMER-OUT
-    PULS_LENGTH: 0.5
-     
+    

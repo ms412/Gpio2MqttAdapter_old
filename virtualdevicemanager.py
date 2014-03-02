@@ -7,6 +7,7 @@ import time
 from virtualportmanager import BinaryOut
 from virtualportmanager import BinaryIn
 from virtualportmanager import TimerOut
+from virtualportmanager import TimerIn
 from hwIF_23017 import hwIF_23017
 from hwIF_raspberry import hwIF_raspberry
 
@@ -41,6 +42,8 @@ class vdm(threading.Thread):
         self._fromPortQueue = fromPortQueue
         
         self._portInstanceList = []
+        
+        self._requestSync = False
 #        self._loghandle.info('VirtualDeviceDrv23017::init  Version %s , Date %s',__VERSION__,__DATE__)
         self._loghandle.info('VDM::init Create Object Device %s Mqtt %s',self._DEVICE_TYPE, self._DEVICE_NAME)
         self._loghandle.debug('VDM::init Create Object with configuration %s',configuration)
@@ -58,21 +61,38 @@ class vdm(threading.Thread):
    #     self.SetupPort()
         
         #read the port status of all boards 
-        data = self.Read()
-        self._fromPortQueue.put(data)
+       # data = self.Read()
+      #  self._fromPortQueue.put(data)
+        data = self.Get('ALL')
         
+        print data
         rc = 0
         while rc == 0:
+            
+            data = self.Get('UPDATE')
+            
+         #   print "UPDATE:",len(data),data
+            self._fromPortQueue.put(data)
+            
   #          print "Simulator Loop"
             '''Read Updaet from GPIO Ports'''
-            data = self.Update()
-            self._fromPortQueue.put(data)
+        #    data = self.Update()
+         #   self._fromPortQueue.put(data)
+            
+            if self._requestSync == True:
+                data = self.Get('ALL')
+                self._fromPortQueue.put(data)
+                self._requestSync = False
+                self._loghandle.info('Sync all ports %s',data)
             ''' make update from Flash Ports'''
    #         self.UpdateFlash()
    #         self.UpdatePushButton()
     #        data = self.UpdateDebounce()
      #       self._threadQueue.put(data)
-            time.sleep(1)
+    #        time.sleep(3)
+     #       data = self.Get('ALL')
+      #      print "ALL:",len(data), data
+            time.sleep(0.1)
             
         #    while self._toPortQu.qsize:
                 
@@ -103,6 +123,8 @@ class vdm(threading.Thread):
                     self._portInstanceList.append(BinaryIn(self._hwHandle, self._DEVICE_TYPE, configItem))
                 elif 'TIMER-OUT' in configItem.get('MODE'):
                     self._portInstanceList.append(TimerOut(self._hwHandle, self._DEVICE_TYPE, configItem))
+                elif 'TIMER-IN' in configItem.get('MODE'):
+                    self._portInstanceList.append(TimerIn(self._hwHandle, self._DEVICE_TYPE, configItem))
                 else:
                     self._loghandle.critical('VirtualPortManager:Setup Port Number %s for Device %s Mode %s not supported',configItem.get('NAME'), self._DEVICE_TYPE, configItem.get('MODE')) 
                 
@@ -138,7 +160,7 @@ class vdm(threading.Thread):
         else:
             self._loghandle.error('VDM::Write Port %s NOT found in Portlist', portName)
             result = False
-            irtualDeviceDrv23017
+
         return result
     
     def Read(self, name = None):
@@ -164,8 +186,100 @@ class vdm(threading.Thread):
                 
     #    print 'GET',resultList
         return resultList
+    
+    def Get(self, mode = None):
+        
+        resultList = []
+        
+        for instance in self._portInstanceList:     
+            if 'BINARY-IN' in instance.GetMode():
+                if instance.Update() == True or 'ALL' in mode:
+        #        if instance.Update() == True:
+             #       print instance.Update()
+                    resultList.append(self.Get_Port(instance))
+            elif 'BINARY-OUT' in instance.GetMode():
+                if'ALL' in mode:
+                    resultList.append(self.Get_Port(instance))
+            elif 'TIMER-OUT'in instance.GetMode():
+               # print "Timer Out", instance.Update()
+                if instance.Update() == True or 'ALL' in mode:
+              #      print "TIMER-OUT"
+                    resultList.append(self.Get_Port(instance))
+            elif 'TIMER-IN' in instance.GetMode():
+                if instance.Update() == True or 'ALL' in mode:
+                #    print "TIMER-IN"
+                    resultList.append(self.Get_Port(instance))
+            else:
+                print 'unknown'
+                
+ #       print "Length",len(resultList),"Content",resultList
+    
+        return resultList
+    
+    def Get_Port(self, instance):
+        
+        resultDict ={}
 
-    def Update(self, mode = 'UPDATE'):
+        portDict = instance.Get()
+        
+ #       print "Debug",portDict
+            
+        if portDict.get('STATE') == True:
+            resultDict.update({'DEVICE_NAME':self._DEVICE_NAME})
+            resultDict.update({'PORT_NAME':portDict.get('NAME')})
+            resultDict.update({'PORT_VALUE':portDict.get('VALUE')})
+        else:
+            self._loghandle.debug('VDM::GetBinaryIn data invalid Return State: %s', portDict.get('STATE')) 
+ #       print "Result Dict:",resultDict
+        return resultDict
+    
+    def Get_BinaryOut(self, instance):
+        
+        resultDict ={}
+        
+        portDict = instance.Get()
+
+        if portDict.get('STATE') == True:
+            resultDict.update({'DEVICE_NAME':self._DEVICE_NAME})
+            resultDict.update({'PORT_NAME':portDict.get('NAME')})
+            resultDict.update({'PORT_VALUE':portDict.get('VALUE')})
+        else:
+            self._loghandle.debug('VDM::GetBinaryOut data invalid Return State: %s', portDict.get('STATE')) 
+
+        return resultDict
+    
+    def Get_TimerOut(self,instance):
+        
+        resultDict ={}
+        
+        portDict = instance.Get()
+
+        if portDict.get('STATE') == True:
+            resultDict.update({'DEVICE_NAME':self._DEVICE_NAME})
+            resultDict.update({'PORT_NAME':portDict.get('NAME')})
+            resultDict.update({'PORT_VALUE':portDict.get('VALUE')})
+        else:
+            self._loghandle.debug('VDM::GetTimerOut data invalid Return State: %s', portDict.get('STATE')) 
+
+        return resultDict
+    
+    def Get_TimerIn(self,instance):
+        
+        resultDict ={}
+        
+        portDict = instance.Get()
+
+        if portDict.get('STATE') == True:
+            resultDict.update({'DEVICE_NAME':self._DEVICE_NAME})
+            resultDict.update({'PORT_NAME':portDict.get('NAME')})
+            resultDict.update({'PORT_VALUE':portDict.get('DELTA_T1')})
+            resultDict.update({'DELTA_T1':portDict.get('DELTA_T1')})
+        else:
+            self._loghandle.debug('VDM::GetTimerIn; data invalid Return State: %s', portDict.get('STATE')) 
+
+        return resultDict            
+
+    def UpdateOld(self, mode = 'UPDATE'):
         
         resultList =[]
         
@@ -179,9 +293,15 @@ class vdm(threading.Thread):
             elif 'TIMER-OUT' in instance.GetMode():
                 instance.Update()
                 
+            elif 'TIMER-IN' in instance.GetMode():
+                value = instance.Update()
+                if value.get('Update') == True:
+                    resultList.append(self.EnrichResult(value.get('State'), instance))
      #   print 'UPDATE',resultList    
         return resultList
     
+
+            
         
     def EnrichResult(self, value, instance):
         
@@ -193,6 +313,9 @@ class vdm(threading.Thread):
         
         return resultDict
     
+    def RequestSync(self):
+        self._requestSync = True
+        
     def UpdateGPIO(self, mode):
         resultList = []
         

@@ -29,7 +29,7 @@ class mqttclient(threading.Thread):
         self._port = int(self._config.get(0,'MQTT_PORT',1883))
 #        tempChannel = self._config.get(0,'MQTT_CHANNEL','/OPENHAB') +'/'+'#'
         self._mqtt_sub_ch = str(self._config.get(0,'MQTT_SUB_CH','/RASPBERRY02') +'/'+'#')
-        self._mqtt_pub_ch = str(self._config.get(0,'MQTT_PUB_CH','/OPENHAB02') +'/')
+        self._mqtt_pub_ch = str(self._config.get(0,'MQTT_PUB_CH','/OPENHAB02'))
  #       self._channel = str(tempChannel)
         
         self._loghandle.info('MqttWrapper::Init Start Mqtt Client Thread at host: %s; Port: %s; Subscribe Ch.: %s; Publish Ch.: %s;',self._host, self._port, self._mqtt_sub_ch, self._mqtt_pub_ch  )

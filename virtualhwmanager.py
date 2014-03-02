@@ -71,7 +71,7 @@ class vhm(object):
         value = value to be written to port
         """
         result = False
-        
+
         result,threadID = self.GetThreadID(channel)
         
         if result == True:
@@ -147,3 +147,8 @@ class vhm(object):
                 break
         
         return result
+    
+    def RequestSync(self):
+        
+        for threadID in self._threadList:
+            threadID.RequestSync()
