@@ -1,7 +1,7 @@
 
 import time
 
-from wrapper_log import loghandle
+from logAdapter import loghandle
 
 class BinaryOut(object):
     '''
@@ -522,4 +522,92 @@ class TimerIn(object):
     def GetMode(self):
         return self._MODE
     
+class PWM(object):
+    '''
+    classdocs
+    '''
+    def __init__(self, hwHandle, hwDevice, configuration):
+        '''
+        Constructor
+        '''    
+        self._hwHandle = hwHandle
+        self._hwDevice = hwDevice
+        self._config = configuration
+        self._loghandle = loghandle()
+        
+        self.Setup()
+        
+    def Setup(self):
+        
+    #    self._SavePinState = ''
+ 
+        if any(temp in self._hwDevice for temp in ['RASPBERRY']):
+            ''' 
+            Mandatory configuration Items
+            '''
+            try:
+                self._NAME = self._config.get('NAME')
+                self._HWID = int(self._config.get('HWID'))
+                self._MODE = self._config.get('MODE','PWM')
+
+            except:
+                self._loghandle.critical('PWM::Init Mandatory Parameter missing for Port %s',self._NAME)
+                
+            ''' 
+            optional configuration Items
+            '''
+            self._DIRECTION = self._config.get('DIRECTION','OUT')
+            self._OFF_VALUE = self._config.get('OFF_VALUE','OFF')
+            self._ON_VALUE = self._config.get('ON_VALUE','ON')
+ 
+            '''
+            Define class variables
+            '''
+            self._SavePinState = ''
+            self._pwmState = False
+ 
+                
+            '''
+            configure port as Input
+            '''
+            self._hwHandle.ConfigPWM(self._HWID) 
+                
+            self._loghandle.info('BinaryOut::Init Configure Port %s HardwareID %s in Mode %s',self._NAME,self._HWID,self._MODE)
+
+        else:
+            self._loghandle.crittical('BinaryOut::Setup: Device not Supported')
+            
+        return True
+    
+    def Set(self, value):
+        
+        try: 
+            self._flashFrequency = float(value)
+            self._hwHandle.WritePWM(self._HW_ID,value) 
+            
+        except ValueError:
+         #   self._flashFrequency = int(2)
+          #  self._t1 = time.clock()
+            self._loghandle.info('VirtualPort::SetPWM value error %s not supported',value) 
+        return True
+    
+    def Get(self):
+        '''
+        Returns current state of port in Dictionary
+        VALUE: as defined in ON/OFF_VALUE
+        STATE: True/False whether VALUE true or false
+        '''
+        return {'VALUE':int(deltaT1), 'NAME':name, 'DELTA_T1': deltaT1, 'STATE':state}      
+    
+    def Update(self):
   
+        return True         
+    
+    def GetDirection(self):
+        return self._DIRECTION
+    
+    def GetName(self):
+        return self._NAME
+        
+    def GetMode(self):
+        return self._MODE

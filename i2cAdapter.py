@@ -2,7 +2,7 @@
 import smbus
 import random
 
-from wrapper_log import loghandle
+from logAdapter import loghandle
 
 class i2c(object):
     '''

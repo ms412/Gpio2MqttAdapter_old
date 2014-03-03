@@ -3,8 +3,8 @@ Created on Feb 16, 2014
 
 @author: tgdscm41
 '''
-from i2c_adapter import i2c
-from wrapper_log import loghandle
+from i2cAdapter import i2c
+from logAdapter import loghandle
 from bitoperation import bitoperation
 
          

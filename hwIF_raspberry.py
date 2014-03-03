@@ -1,5 +1,5 @@
 from bitoperation import bitoperation
-from wrapper_log import loghandle
+from logAdapter import loghandle
 #import RPi.GPIO as GPIO
 import RPIO as GPIO
 from RPIO import PWM

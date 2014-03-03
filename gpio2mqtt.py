@@ -28,8 +28,8 @@ import Queue
 
 
 from config import config
-from wrapper_log import loghandle
-from wrapper_mqtt import mqttclient
+from logAdapter import loghandle
+from mqttAdapter import mqttclient
 from virtualhwmanager import vhm
 from daemon import daemon
 

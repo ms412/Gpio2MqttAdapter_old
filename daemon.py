@@ -3,7 +3,7 @@
 import sys, os, time, atexit
 from signal import SIGTERM 
 
-from wrapper_log import loghandle
+from logAdapter import loghandle
 
 class daemon:
     """

@@ -4,15 +4,15 @@ import Queue
 import time
 
 
-from virtualportmanager import BinaryOut
-from virtualportmanager import BinaryIn
-from virtualportmanager import TimerOut
-from virtualportmanager import TimerIn
+from vpm import BinaryOut
+from vpm import BinaryIn
+from vpm import TimerOut
+from vpm import TimerIn
 from hwIF_23017 import hwIF_23017
 from hwIF_raspberry import hwIF_raspberry
 
 from config import config
-from wrapper_log import loghandle
+from logAdapter import loghandle
 
 
 

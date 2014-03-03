@@ -2,8 +2,8 @@
 import Queue
 
 from config import config
-from wrapper_log import loghandle
-from virtualdevicemanager import vdm
+from logAdapter import loghandle
+from vdm import vdm
 
 
 class vhm(object):
