@@ -8,8 +8,9 @@ from vpm import BinaryOut
 from vpm import BinaryIn
 from vpm import TimerOut
 from vpm import TimerIn
+from vpm import S0
 from hwIF_23017 import hwIF_23017
-from hwIF_raspberry import hwIF_raspberry
+#from hwIF_raspberry import hwIF_raspberry
 
 from config import config
 from logAdapter import loghandle
@@ -92,7 +93,7 @@ class vdm(threading.Thread):
     #        time.sleep(3)
      #       data = self.Get('ALL')
       #      print "ALL:",len(data), data
-            time.sleep(0.1)
+            time.sleep(0.01)
             
         #    while self._toPortQu.qsize:
                 
@@ -125,6 +126,8 @@ class vdm(threading.Thread):
                     self._portInstanceList.append(TimerOut(self._hwHandle, self._DEVICE_TYPE, configItem))
                 elif 'TIMER-IN' in configItem.get('MODE'):
                     self._portInstanceList.append(TimerIn(self._hwHandle, self._DEVICE_TYPE, configItem))
+                elif 'S0' in configItem.get('MODE'):
+                    self._portInstanceList.append(S0(self._hwHandle, self._DEVICE_TYPE, configItem))
                 else:
                     self._loghandle.critical('VirtualPortManager:Setup Port Number %s for Device %s Mode %s not supported',configItem.get('NAME'), self._DEVICE_TYPE, configItem.get('MODE')) 
                 
@@ -206,6 +209,10 @@ class vdm(threading.Thread):
               #      print "TIMER-OUT"
                     resultList.append(self.Get_Port(instance))
             elif 'TIMER-IN' in instance.GetMode():
+                if instance.Update() == True or 'ALL' in mode:
+                #    print "TIMER-IN"
+                    resultList.append(self.Get_Port(instance))
+            elif 'S0' in instance.GetMode():
                 if instance.Update() == True or 'ALL' in mode:
                 #    print "TIMER-IN"
                     resultList.append(self.Get_Port(instance))

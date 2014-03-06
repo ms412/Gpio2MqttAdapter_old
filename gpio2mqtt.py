@@ -30,7 +30,7 @@ import Queue
 from config import config
 from logAdapter import loghandle
 from mqttAdapter import mqttclient
-from virtualhwmanager import vhm
+from vhm import vhm
 from daemon import daemon
 
 class Manager(daemon):

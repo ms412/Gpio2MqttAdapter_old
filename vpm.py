@@ -610,4 +610,179 @@ class PWM(object):
         return self._NAME
         
     def GetMode(self):
+        return self._MODE    
+    
+class S0(object):
+    '''
+    classdocs
+    '''
+    def __init__(self, hwHandle, hwDevice, configuration):
+        '''
+        Constructor
+        '''    
+        self._hwHandle = hwHandle
+        self._hwDevice = hwDevice
+        self._config = configuration
+        self._loghandle = loghandle()
+        
+        self.Setup()
+        
+    def Setup(self):
+        
+    #    self._SavePinState = ''
+ 
+        if any(temp in self._hwDevice for temp in ['MCP23017','RASPBERRY']):
+            ''' 
+            Mandatory configuration Items
+            '''
+            try:
+                self._NAME = self._config.get('NAME')
+                self._HWID = int(self._config.get('HWID'))
+                self._MODE = self._config.get('MODE','S0')
+                self._E_FACTOR = float(self._config.get('E-FACTOR','2000'))
+
+            except:
+                self._loghandle.critical('BinaryOut::Init Mandatory Parameter missing for Port %s',self._NAME)
+                
+            ''' 
+            optional configuration Items
+            '''
+            self._DIRECTION = self._config.get('DIRECTION','IN')
+            self._OFF_VALUE = self._config.get('OFF_VALUE','OFF')
+            self._ON_VALUE = self._config.get('ON_VALUE','ON')
+ 
+            '''
+            Define class variables
+            '''
+            self._SavePinState = 0
+
+            self._T0 = time.time()
+            self._T1 = 0.0
+            self._T2 = 0.0
+            self._T3 = time.time()
+            
+            self._baseState = 0
+
+            self._ResultAvailable = False
+            
+            self._watt = 0.0
+            self._engery = 0
+            self._pulsCount = 0
+
+            '''
+            configure port as Input
+            '''
+            self._hwHandle.ConfigIO(self._HWID,1)
+            self._SavePinState = self._hwHandle.ReadPin(self._HWID)
+                
+            self._loghandle.info('BinaryOut::Init Configure Port %s HardwareID %s in Mode %s',self._NAME,self._HWID,self._MODE)
+
+        else:
+            self._loghandle.crittical('BinaryOut::Setup: Device not Supported')
+            
+        return True
+    
+    def Set(self, value):
+      
+        return None
+    
+    def Get(self):
+        '''
+        Returns current state of port in Dictionary
+        VALUE: as defined in ON/OFF_VALUE
+        STATE: True/False whether VALUE true or false
+        '''
+        value = ''
+        deltaT1 = self._T1
+        name = self._NAME
+        state = True
+        
+
+
+
+
+        self._loghandle.info('S0::Get Port %s Status %s',self._NAME, deltaT1) 
+        
+        return {'VALUE':int(deltaT1), 'NAME':name, 'Watt': self._watt, 'Energy': self.Energy(), 'STATE':state} 
+  #      return True      
+    
+    def Update(self):
+        '''
+        Returns True in case push button cycles is completed
+        button pushed and released
+        details returned by Get method
+        '''
+        update = False
+        factor = 2000
+        
+        if self._SavePinState > 1 and self._hwHandle.ReadPin(self._HWID) == 0:
+     
+            print "state1"
+            print "SavePinState", self._SavePinState
+            print "PinState", self._hwHandle.ReadPin(self._HWID)
+            self._SavePinState = self._hwHandle.ReadPin(self._HWID)
+            
+            if self._T0 == 0:
+                ''' 
+                0 -> 1 transient  =T0
+                '''
+                print "T0: load current time"
+                self._T0 = time.time()
+    
+            else:
+                print "T2: measure time T2 -T0"
+                self._T2 = time.time()
+                self._T1 = self._T2 -self._T0
+                print "T2", self._T2,"T0", self._T0
+                print "delta T1:",self._T1
+                self._T0 = time.time()
+                print "T0new", self._T0
+                self.Power()
+                self._T2 = 0
+                update = True
+                print "SavePinState", self._SavePinState
+                print "PinState", self._hwHandle.ReadPin(self._HWID)
+#                watt = 1/factor*3600/self._T1*1000
+
+             
+        elif self._SavePinState == 0 and self._hwHandle.ReadPin(self._HWID) > 1:
+            print "State2"
+            print "SavePinState", self._SavePinState
+            print "PinState", self._hwHandle.ReadPin(self._HWID)
+            self._SavePinState = self._hwHandle.ReadPin(self._HWID)
+            
+        #else:
+      #      print "pin", self._hwHandle.ReadPin(self._HWID)
+       #     print "savestate", self._SavePinState
+            
+        return update           
+    
+    def Power(self):
+        self._watt = 1/self._E_FACTOR * 3600 / self._T1 * 1000
+        self._pulsCount = self._pulsCount +1
+        print "Watt", self._watt
+
+        return self._watt
+    
+    def Energy(self):
+        self._energy = float(self._pulsCount / self._E_FACTOR)
+ #       print self._pulsCount / self._E_FACTOR
+        print "Energy %f" % self._energy, "Pulscounte", self._pulsCount
+        
+        return self._energy
+        
+
+    
+        
+    
+      
+    
+    def GetDirection(self):
+        return self._DIRECTION
+    
+    def GetName(self):
+        return self._NAME
+        
+    def GetMode(self):
         return self._MODE
+    

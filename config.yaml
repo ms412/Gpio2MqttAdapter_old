@@ -42,6 +42,12 @@ Config:
     OFF_VALUE: OFF
     MODE: TIMER-IN
     
+   Port7:
+    NAME: GPIO107
+    HWID: 7
+    MODE: S0
+    E-FACTOR: 2000
+    
    Port8:
     NAME: GPIO108
     HWID: 8
