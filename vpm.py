@@ -751,10 +751,6 @@ class S0(object):
             print "PinState", self._hwHandle.ReadPin(self._HWID)
             self._SavePinState = self._hwHandle.ReadPin(self._HWID)
             
-        #else:
-      #      print "pin", self._hwHandle.ReadPin(self._HWID)
-       #     print "savestate", self._SavePinState
-            
         return update           
     
     def Power(self):
@@ -770,6 +766,7 @@ class S0(object):
         print "Energy %f" % self._energy, "Pulscounte", self._pulsCount
         
         return self._energy
+    
         
 
     
